@@ -29,7 +29,7 @@ head(dat)
 frq.to <- sort(table(dat$to),decreasing = T)[1:100]
 frq.from <- sort(table(dat$from),decreasing = T)[1:100]
 topsize = 10
-toplist <- union(names(frq.to[9:topsize]),names(frq.from[9:topsize])) %>% unique()
+toplist <- union(names(frq.to[15:20]),names(frq.from[15:20])) %>% unique()
 
 dat <- subset(dat,(to %in% toplist) | (from %in% toplist))
 head(dat)
@@ -56,7 +56,8 @@ g2 <- simplify(g2,remove.multiple = T,edge.attr.comb = list(weight="mean","ignor
 DD = distances(g2, v = V(g2), to = V(g2), mode = c("all"), weights = NULL, algorithm = c("automatic"))
 Ind <- DD ==Inf
 DD[Ind] <- vcount(g2)
-write.table(DD,file=paste0(modelName,"_topfreq2_dist.csv"),sep = ";",row.names = FALSE,col.names = FALSE,eol = ";\n",append = FALSE)
+########## replace filename: freq3  ############
+write.table(DD,file=paste0(modelName,"_topfreq3_dist.csv"),sep = ";",row.names = FALSE,col.names = FALSE,eol = ";\n",append = FALSE)
 # print(table(DD))
 max(dat$value2)
 
@@ -71,9 +72,9 @@ qplot(DD[DD<11])
 ### . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ..
 ### GUDHI Run                                                               ####
 
-f <- "kyber_topfreq2_dist.csv"
+f <- "kyber_topfreq3_dist.csv"
 
-batFile <- paste0("Model_",modelName,"_topfreq2.bat")
+batFile <- paste0("Model_",modelName,"_topfreq3.bat")
 if (file.exists(batFile)) {
   file.remove(batFile)
 }
