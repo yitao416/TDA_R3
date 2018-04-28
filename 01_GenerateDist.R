@@ -93,3 +93,5 @@ for (j in 2:6) {
   cat("\npause\n",file = batFile,append = T )
 }
 
+
+
