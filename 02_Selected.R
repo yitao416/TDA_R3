@@ -29,9 +29,11 @@ head(dat)
 frq.to <- sort(table(dat$to),decreasing = T)[1:100]
 frq.from <- sort(table(dat$from),decreasing = T)[1:100]
 topsize = 10
-toplist <- union(names(frq.to[10:15]),names(frq.from[10:15])) %>% unique()
+toplist <- union(names(frq.to[50:55]),names(frq.from[50:55])) %>% unique()
 
-dat <- subset(dat,(to %in% toplist) | (from %in% toplist))
+# dat <- subset(dat,(to %in% toplist) | (from %in% toplist))
+dat <- subset(dat,(to %in% toplist))
+
 head(dat)
 
 dat <- sample_n(dat,800)
