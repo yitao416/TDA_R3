@@ -28,30 +28,27 @@ head(dat)
 topsize = 100
 frq.to <- sort(table(dat$to),decreasing = T)[1:topsize]
 frq.from <- sort(table(dat$from),decreasing = T)[1:topsize]
-
 toplist <- union(names(frq.to),names(frq.from)) %>% unique()
-
 dat <- subset(dat,(to %in% toplist) & (from %in% toplist))
-
 head(dat)
 
 boxplot(dat$value)
-
 sort(dat$value)[1:20]
 sort(dat$value,decreasing = T)[1:20]
 A = 1e+18 ; B = 5e+23
 a = 1 ; b=10
-
 dat <- dat %>% subset(.,value>A) %>% subset(.,value<B)
 boxplot(dat$value,log = "y")
 
+# normalize value
 distnorm <- function(x){
-  d = 1+ (x-A)*(b-a)/(B-A)
+  d = 1+(x-A)*(b-a)/(B-A)
   return(1/d)
 }
 
 dat$value2 <- lapply(dat$value, FUN = distnorm) %>% as.numeric() %>% round(.,digits = 4)
 boxplot(dat$value2)
+qplot(dat$value2,xlim=c(0,1.1))
 ### . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ..
 ### main program                                                            ####
 
@@ -62,6 +59,7 @@ g2 <- simplify(g2,remove.multiple = T,edge.attr.comb = list(weight="mean","ignor
 
 plot(g2,vertex.size=1,vertex.label=NA,main = paste0("vertices #:",vcount(g2)))
 
+# delete degree 1
 g3 <- g2
 g3.deg <- degree(g3) == 1
 while(any(g3.deg == T)){
