@@ -16,7 +16,6 @@ library(dplyr)
 ### . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ..
 ### pre data                                                                ####
 rm(list=ls())
-
 modelName <- "kyber"
 
 dat <- read.csv(paste0("data/",modelName,".csv"))
@@ -70,15 +69,50 @@ while(any(g3.deg == T)){
 plot(g3,vertex.size=1,vertex.label=NA, main = paste0("vertices #:",vcount(g3)))
 table(degree(g3))
 
+# 
+# DD = distances(g3, v = V(g3), to = V(g3), mode = c("all"), weights = NULL, algorithm = c("automatic"))
+# Ind <- DD ==Inf
+# DD[Ind] <- vcount(g3)
+# DD <- round(DD,digits = 5)
 
-DD = distances(g3, v = V(g3), to = V(g3), mode = c("all"), weights = NULL, algorithm = c("automatic"))
-Ind <- DD ==Inf
-DD[Ind] <- vcount(g3)
-DD <- round(DD,digits = 5)
-########## replace filename: top150  ############
-write.table(DD,file=paste0(modelName,"_top100Rev_dist.csv"),sep = ";",row.names = FALSE,col.names = FALSE,eol = ";\n",append = FALSE)
-# print(table(DD))
-max(dat$value2)
+coreDist <- function(g){
+  g3 <- g
+  g3.deg <- degree(g3) == 1
+  while(any(g3.deg == T)){
+    g3 <- delete.vertices(g3,V(g3)[g3.deg])
+    g3.deg <- degree(g3) == 1
+  }
+  # plot(g3,vertex.label=NA,vertex.size=3, main = paste0("vertices #:",vcount(g3)))
+  DD = distances(g3, v = V(g3), to = V(g3), mode = c("all"), weights = NULL, algorithm = c("automatic"))
+  Ind <- DD ==Inf
+  DD[Ind] <- vcount(g3)
+  DD <- round(DD,digits = 5)
+  return(DD)
+}
+
+### . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ..
+### random walk                                                             ####
+
+folder = "RW/"
+seedList = c(7)
+
+for (seed in 1:20) {
+  set.seed(seed)
+  v.start <- sample(vcount(g3),1)
+  for (rw.steps in 2:5) {
+    #reset the seed to make sure the random walk has same path
+    set.seed(seed)
+    rw <- random_walk(g3,v.start,rw.steps)
+    rw.nb <- neighborhood(g3,nodes = rw) %>% unlist() %>% unique()
+    g4 <- induced_subgraph(g3,c(rw.nb))
+
+    DD <- coreDist(g4)
+    f.name = paste0(folder,modelName,"S",seed,"Step",rw.steps,".csv")
+    write.table(DD,file=f.name,sep = ";",row.names = FALSE,col.names = FALSE,eol = ";\n",append = FALSE)
+    
+  }
+}
+
 
 ### . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ..
 ### plot                                                                    ####
@@ -88,17 +122,19 @@ table(degree(g3))
 ### . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ..
 ### GUDHI Run                                                               ####
 
-f <- "kyber_top100Rev_dist.csv"
-
-batFile <- paste0("Model_",modelName,"_top100Rev.bat")
+batFile <- paste0("Model_",modelName,"_top_RW.bat")
 if (file.exists(batFile)) {
   file.remove(batFile)
 }
 
-for (j in 1:5) {
-  cmd = paste("rips_distance_matrix_persistence.exe -o",gsub(".csv",paste0("MD",j,".txt"),f))
-  op = paste(" -r",j,"-d 4 -p 2 ")
-  cmd = paste0(cmd,op,f)
+folder = "RW/"
+file_list <- list.files(folder,pattern = "csv$")
+
+for (f in file_list) {
+  cmd = paste("rips_distance_matrix_persistence.exe -o",gsub(".csv",".txt",f))
+  op = paste(" -r",6,"-d 4 -p 2 ")
+  cmd = paste0(cmd,op,paste0("./",folder,f))
   cat(cmd,sep="",file=batFile,append = T)
-  cat("\npause\n",file = batFile,append = T)
+  cat("\n",file = batFile,append = T)
 }
+

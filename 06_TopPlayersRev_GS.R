@@ -16,7 +16,6 @@ library(dplyr)
 ### . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ..
 ### pre data                                                                ####
 rm(list=ls())
-
 modelName <- "kyber"
 
 dat <- read.csv(paste0("data/",modelName,".csv"))
@@ -70,35 +69,84 @@ while(any(g3.deg == T)){
 plot(g3,vertex.size=1,vertex.label=NA, main = paste0("vertices #:",vcount(g3)))
 table(degree(g3))
 
+# 
+# DD = distances(g3, v = V(g3), to = V(g3), mode = c("all"), weights = NULL, algorithm = c("automatic"))
+# Ind <- DD ==Inf
+# DD[Ind] <- vcount(g3)
+# DD <- round(DD,digits = 5)
 
-DD = distances(g3, v = V(g3), to = V(g3), mode = c("all"), weights = NULL, algorithm = c("automatic"))
-Ind <- DD ==Inf
-DD[Ind] <- vcount(g3)
-DD <- round(DD,digits = 5)
-########## replace filename: top150  ############
-write.table(DD,file=paste0(modelName,"_top100Rev_dist.csv"),sep = ";",row.names = FALSE,col.names = FALSE,eol = ";\n",append = FALSE)
-# print(table(DD))
-max(dat$value2)
+coreDist <- function(g){
+  g3 <- g
+  g3.deg <- degree(g3) == 1
+  while(any(g3.deg == T)){
+    g3 <- delete.vertices(g3,V(g3)[g3.deg])
+    g3.deg <- degree(g3) == 1
+  }
+  
+  # plot(g3,vertex.label=NA,vertex.size=3, main = paste0("vertices #:",vcount(g3)))
+  DD = distances(g3, v = V(g3), to = V(g3), mode = c("all"), weights = NULL, algorithm = c("automatic"))
+  Ind <- DD ==Inf
+  DD[Ind] <- vcount(g3)
+  DD <- round(DD,digits = 5)
+  return(DD)
+}
 
 ### . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ..
-### plot                                                                    ####
-plot(g3,vertex.size=1,vertex.label=NA)
-qplot(DD[DD<max(DD)])
-table(degree(g3))
+### Graphic stream                                                             ####
+
+folder = "GS/"
+
+set.seed(20)
+sampleSize <- 20
+edgeList <- get.edgelist(g3)
+
+keepIfExist <-  0.8 ; keepIfDoNotExistList <- c(0.02,0.06,0.1,0.14)
+
+
+for (keepIfDoNotExist in keepIfDoNotExistList) {
+  for (j in 1:sampleSize) {
+    set.seed(j)
+    streamVertices <- c() ; streamEdges <- c()
+    
+    for (i in sample(nrow(edgeList))) {
+      if (edgeList[i,1] %in% streamVertices | edgeList[i,2] %in% streamVertices) {
+        if (runif(1) < keepIfExist) {
+          streamEdges <- c(streamEdges,i)
+        }
+      }else{
+        if (runif(1)<keepIfDoNotExist) {
+          streamVertices <- c(streamVertices,edgeList[i,1],edgeList[i,2])
+          streamEdges <- c(streamEdges,i)
+        }
+      }
+    }
+    g.GS <- subgraph.edges(g3,streamEdges)
+    # plot(g.GS,vertex.label=NA,vertex.size=3, main = paste0("vertices #:",vcount(g.GS),"; P2 ",keepIfDoNotExist))
+    dist.GS = coreDist(g.GS)
+    #write file
+    GSfile <- paste0(folder,modelName,"S",j,"_p2_",keepIfDoNotExist,".csv")
+    write.table(dist.GS,file=GSfile,sep = ";",row.names = FALSE,col.names = FALSE,eol = ";\n",append = FALSE)
+  }
+  
+}
+
+
 ### . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . ..
 ### GUDHI Run                                                               ####
 
-f <- "kyber_top100Rev_dist.csv"
-
-batFile <- paste0("Model_",modelName,"_top100Rev.bat")
+batFile <- paste0("Model_",modelName,"_top_GS.bat")
 if (file.exists(batFile)) {
   file.remove(batFile)
 }
 
-for (j in 1:5) {
-  cmd = paste("rips_distance_matrix_persistence.exe -o",gsub(".csv",paste0("MD",j,".txt"),f))
-  op = paste(" -r",j,"-d 4 -p 2 ")
-  cmd = paste0(cmd,op,f)
+folder = "GS/"
+file_list <- list.files(folder,pattern = "csv$")
+
+for (f in file_list) {
+  cmd = paste("rips_distance_matrix_persistence.exe -o",gsub(".csv",".txt",f))
+  op = paste(" -r",6,"-d 4 -p 2 ")
+  cmd = paste0(cmd,op,paste0("./",folder,f))
   cat(cmd,sep="",file=batFile,append = T)
-  cat("\npause\n",file = batFile,append = T)
+  cat("\n",file = batFile,append = T)
 }
+
